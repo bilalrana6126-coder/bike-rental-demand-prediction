@@ -1,0 +1,72 @@
+
+import gradio as gr
+import pandas as pd
+import joblib
+
+# Load the trained model
+model = joblib.load("bike_demand_model.joblib")
+
+
+def predict_demand(
+    year, month, day, hour, weekday,
+    workingday, holiday, season, weather,
+    temperature, feels_like, humidity, windspeed
+):
+    values = {
+        "yr": int(year),
+        "mnth": int(month),
+        "hr": int(hour),
+        "holiday": int(holiday),
+        "weekday": int(weekday),
+        "workingday": int(workingday),
+        "temp": float(temperature),
+        "atemp": float(feels_like),
+        "hum": float(humidity),
+        "windspeed": float(windspeed),
+        "day": int(day),
+        "dayofweek": int(weekday),
+    }
+
+    for i in range(1, 5):
+        values[f"season_{i}"] = int(int(season) == i)
+        values[f"weathersit_{i}"] = int(int(weather) == i)
+
+    input_df = pd.DataFrame(
+        [[values[col] for col in model.feature_names_in_]],
+        columns=model.feature_names_in_
+    )
+
+    prediction = max(0, round(float(model.predict(input_df)[0])))
+    return f"Estimated bike rentals: {prediction}"
+
+
+demo = gr.Interface(
+    fn=predict_demand,
+    inputs=[
+        gr.Dropdown([0, 1], value=1, label="Year (0 = 2011, 1 = 2012)"),
+        gr.Slider(1, 12, value=6, step=1, label="Month"),
+        gr.Slider(1, 31, value=15, step=1, label="Day"),
+        gr.Slider(0, 23, value=17, step=1, label="Hour"),
+        gr.Slider(0, 6, value=2, step=1, label="Weekday (0 = Sunday)"),
+        gr.Radio([0, 1], value=1, label="Working day?"),
+        gr.Radio([0, 1], value=0, label="Holiday?"),
+        gr.Dropdown(
+            [1, 2, 3, 4], value=2,
+            label="Season (1 = Spring, 2 = Summer, 3 = Fall, 4 = Winter)"
+        ),
+        gr.Dropdown(
+            [1, 2, 3, 4], value=1,
+            label="Weather (1 = Clear, 2 = Mist, 3 = Light rain/snow, 4 = Heavy rain/snow)"
+        ),
+        gr.Slider(0, 1, value=0.5, step=0.01, label="Temperature (normalized)"),
+        gr.Slider(0, 1, value=0.5, step=0.01, label="Feels-like temperature (normalized)"),
+        gr.Slider(0, 1, value=0.5, step=0.01, label="Humidity (normalized)"),
+        gr.Slider(0, 1, value=0.2, step=0.01, label="Windspeed (normalized)"),
+    ],
+    outputs=gr.Textbox(label="Prediction"),
+    title="Bike Rental Demand Predictor",
+    description="Enter time and weather conditions to estimate hourly bike rental demand."
+)
+
+if __name__ == "__main__":
+    demo.launch()
