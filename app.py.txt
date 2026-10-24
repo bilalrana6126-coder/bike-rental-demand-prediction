@@ -4,8 +4,7 @@ import pandas as pd
 import joblib
 
 # Load the trained model
-model = joblib.load("bike_demand_model.joblib")
-
+model = joblib.load("bike_demand_model_compressed.joblib")
 
 def predict_demand(
     year, month, day, hour, weekday,
