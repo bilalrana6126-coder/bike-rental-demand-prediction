@@ -2,6 +2,7 @@
 import gradio as gr
 import pandas as pd
 import joblib
+import os
 
 # Load the trained model
 model = joblib.load("bike_demand_model_compressed.joblib")
@@ -68,4 +69,7 @@ demo = gr.Interface(
 )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(
+    server_name="0.0.0.0",
+    server_port=int(os.environ.get("PORT", 7860))
+)
